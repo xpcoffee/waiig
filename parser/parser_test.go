@@ -8,9 +8,9 @@ import (
 
 func TestLetStatements(t *testing.T) {
 	input := `
-        let x 5;
-        let = 10;
-        let 838383;
+        let x = 5;
+        let y = 10;
+        let fooBar = 838383;
     `
 
 	l := lexer.New(input)
@@ -50,7 +50,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 
 	letStmt, ok := s.(*ast.LetStatement)
 	if !ok {
-		t.Errorf("statement is not an ast.LetStatement. got=%Y", s)
+		t.Errorf("statement is not an ast.LetStatement. got=%s", s)
 		return false
 	}
 
@@ -61,6 +61,57 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 
 	if letStmt.Name.TokenLiteral() != name {
 		t.Errorf("letStmt.Name.TokenLiteral is not %s. got=%s", name, letStmt.Name.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func TestReturnStatements(t *testing.T) {
+	input := `
+        return 5;
+        return 10;
+        return 9933322;
+    `
+
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if program == nil {
+		t.Fatalf("ParseProgram returned nil")
+	}
+	if len(program.Statements) != 3 {
+		t.Fatalf("Program does not contain 3 statements. got=%d", len(program.Statements))
+	}
+
+	tests := []struct {
+		expectedExpression string
+	}{
+		{"5"},
+		{"10"},
+		{"9933322"},
+	}
+
+	for i, tt := range tests {
+		stmt := program.Statements[i]
+		if !(testReturnStatement(t, stmt, tt.expectedExpression)) {
+			return
+		}
+	}
+}
+
+func testReturnStatement(t *testing.T, s ast.Statement, name string) bool {
+	rtrnStmt, ok := s.(*ast.ReturnStatement)
+	if !ok {
+		t.Errorf("statement is not an ast.ReturnStatement. got=%s", s)
+		return false
+	}
+
+	if rtrnStmt.TokenLiteral() != "return" {
+		t.Errorf("token literal is not 'return'. got=%s", s.TokenLiteral())
 		return false
 	}
 
