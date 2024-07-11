@@ -136,14 +136,44 @@ func TestIdentifierExpression(t *testing.T) {
 	}
 
 	idnt, ok := stmt.Expression.(*ast.Identifier)
+	if !ok {
+		t.Errorf("Statement is not an Identifier. Got %T", program.Statements[0])
+	}
 
 	if idnt.Value != "foobar" {
 		t.Errorf("Unexpected value. Expected %q, Got %q", "foobar", idnt.Value)
 	}
 
 	if idnt.TokenLiteral() != "foobar" {
-		t.Errorf("Unexpected TokenLiteral. Expected %q, Got %q", "foobar", idnt.Value)
+		t.Errorf("Unexpected TokenLiteral. Expected %q, Got %q", "foobar", idnt.TokenLiteral())
 	}
+}
+
+func TestIntegerLiteralExpression(t *testing.T) {
+	input := "5;"
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Statement is not an expression. Got %T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("Statement is not an IntegerLiteral. Got %T", program.Statements[0])
+	}
+
+	if literal.Value != 5 {
+		t.Errorf("Unexpected value. Expected %d, Got %d", 5, literal.Value)
+	}
+
+	if literal.TokenLiteral() != "5" {
+		t.Errorf("Unexpected TokenLiteral. Expected %s, Got %s", "5", literal.TokenLiteral())
+	}
+
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
