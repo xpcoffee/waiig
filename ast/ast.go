@@ -90,15 +90,15 @@ func (rs *ReturnStatement) String() string {
 
 // expression statement
 type ExpressionStatement struct {
-	Token token.Token // the first token in the expression
-	Value Expression
+	Token      token.Token // the first token in the expression
+	Expression Expression
 }
 
 func (es *ExpressionStatement) statementNode()       {}
 func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
 func (es *ExpressionStatement) String() string {
-	if es.Value != nil {
-		return es.Value.String()
+	if es.Expression != nil {
+		return es.Expression.String()
 	}
 	return "nil"
 }

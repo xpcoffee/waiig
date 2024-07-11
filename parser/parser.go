@@ -7,11 +7,31 @@ import (
 	"monkey/token"
 )
 
+// NOTE: the order encodes operator precedence!
+const (
+	_ int = iota // start with iota to give constants incrementing values
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myfunction(x)
+)
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func() ast.Expression
+)
+
 type Parser struct {
 	l         *lexer.Lexer
 	curToken  token.Token
 	peekToken token.Token
 	errors    []string
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -20,11 +40,22 @@ func New(l *lexer.Lexer) *Parser {
 		errors: []string{},
 	}
 
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefixParseFn(token.IDENT, p.parseIdentifier)
+
 	// initialize peek & cur
 	p.nextToken()
 	p.nextToken()
 
 	return p
+}
+
+func (p *Parser) registerPrefixParseFn(tt token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tt] = fn
+}
+
+func (p *Parser) registerInfixParseFn(tt token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tt] = fn
 }
 
 func (p *Parser) nextToken() {
@@ -54,7 +85,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -92,6 +123,32 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	// look for OPTIONAL semicolon, and advance past it if we find one (parseExpression won't do this)
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	parsePrefix := p.prefixParseFns[p.curToken.Type]
+	if parsePrefix == nil {
+		return nil
+	}
+	leftExp := parsePrefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
 func (p *Parser) currTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
 }
@@ -113,10 +170,6 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 func (p *Parser) peekError(t token.TokenType) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
-}
-
-func (p *Parser) parseExpression() ast.Expression {
-	return nil
 }
 
 func (p *Parser) Errors() []string {

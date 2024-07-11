@@ -118,6 +118,34 @@ func testReturnStatement(t *testing.T, s ast.Statement, name string) bool {
 	return true
 }
 
+func TestIdentifierExpression(t *testing.T) {
+	input := "foobar;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Errorf("Expected a single statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Statement is not an expression. Got %T", program.Statements[0])
+	}
+
+	idnt, ok := stmt.Expression.(*ast.Identifier)
+
+	if idnt.Value != "foobar" {
+		t.Errorf("Unexpected value. Expected %q, Got %q", "foobar", idnt.Value)
+	}
+
+	if idnt.TokenLiteral() != "foobar" {
+		t.Errorf("Unexpected TokenLiteral. Expected %q, Got %q", "foobar", idnt.Value)
+	}
+}
+
 func checkParserErrors(t *testing.T, p *Parser) {
 	errors := p.Errors()
 	if len(errors) == 0 {
