@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"monkey/ast"
 	"monkey/lexer"
 	"testing"
@@ -156,6 +157,10 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
+	if len(program.Statements) != 1 {
+		t.Errorf("Expected a single statement, got %d", len(program.Statements))
+	}
+
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
 		t.Errorf("Statement is not an expression. Got %T", program.Statements[0])
@@ -173,7 +178,67 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	if literal.TokenLiteral() != "5" {
 		t.Errorf("Unexpected TokenLiteral. Expected %s, Got %s", "5", literal.TokenLiteral())
 	}
+}
 
+func TestPrefixExpressions(t *testing.T) {
+	prefixTests := []struct {
+		input        string
+		operator     string
+		integerValue int64
+	}{
+		{"!5", "!", 5},
+		{"-15", "-", 15},
+	}
+
+	for _, tt := range prefixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Errorf("Expected a single statement, got %d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Errorf("Statement is not an expression. Got %T", program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Errorf("Statement is not a PrefixExpression. Got %T", program.Statements[0])
+		}
+
+		if exp.Operator != tt.operator {
+			t.Errorf("Unexpected operator. wanted=%q got=%q", tt.operator, exp.Operator)
+		}
+
+		if !testIntegerLiteral(t, exp.Right, tt.integerValue) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
+	integ, ok := il.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("Not an IntegerLiteral. got=%T", il)
+		return false
+	}
+
+	if integ.Value != value {
+		t.Errorf("Value incorrect. wanted=%d got=%d", value, integ.Value)
+		return false
+	}
+
+	expectedLiteral := fmt.Sprintf("%d", value)
+	if integ.TokenLiteral() != expectedLiteral {
+		t.Errorf("TokenLiteral incorrect. wanted=%q got=%q", expectedLiteral, integ.TokenLiteral())
+		return false
+	}
+
+	return true
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
