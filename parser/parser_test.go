@@ -7,6 +7,19 @@ import (
 	"testing"
 )
 
+func checkParserErrors(t *testing.T, p *Parser) {
+	errors := p.Errors()
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("parser had %d errors:", len(errors))
+	for _, error := range errors {
+		t.Errorf("parser error: %q", error)
+	}
+	t.FailNow()
+}
+
 func TestLetStatements(t *testing.T) {
 	input := `
         let x = 5;
@@ -16,7 +29,6 @@ func TestLetStatements(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
@@ -241,15 +253,118 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	return true
 }
 
-func checkParserErrors(t *testing.T, p *Parser) {
-	errors := p.Errors()
-	if len(errors) == 0 {
-		return
+func TestParsingInfixExpressions(t *testing.T) {
+	infixTests := []struct {
+		input    string
+		left     int64
+		operator string
+		right    int64
+	}{
+		{"5 + 5", 5, "+", 5},
+		{"5 - 5", 5, "-", 5},
+		{"5 * 5", 5, "*", 5},
+		{"5 / 5", 5, "/", 5},
+		{"5 > 5", 5, ">", 5},
+		{"5 < 5", 5, "<", 5},
+		{"5 == 5", 5, "==", 5},
+		{"5 != 5", 5, "!=", 5},
 	}
 
-	t.Errorf("parser had %d errors:", len(errors))
-	for _, error := range errors {
-		t.Errorf("parser error: %q", error)
+	for _, tt := range infixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected a single statement, got %d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Statement is not an expression. Got %T", program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf("Statement is not a InfixExpression. Got %T", program.Statements[0])
+		}
+
+		if !testIntegerLiteral(t, exp.Left, tt.left) {
+			return
+		}
+
+		if exp.Operator != tt.operator {
+			t.Fatalf("Operator incorrect. wanted=%q got=%q", tt.operator, exp.Operator)
+		}
+
+		if !testIntegerLiteral(t, exp.Right, tt.right) {
+			return
+		}
 	}
-	t.FailNow()
+}
+
+func TestOperatorPrecedenceParsing(t *testing.T) {
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"-a * b",
+			"((-a) * b)",
+		},
+		{
+			"!-a",
+			"(!(-a))",
+		},
+		{
+			"a + b + c",
+			"((a + b) + c)",
+		},
+		{
+			"a + b - c",
+			"((a + b) - c)",
+		},
+		{
+			"a * b * c",
+			"((a * b) * c)",
+		},
+		{
+			"a * b / c",
+			"((a * b) / c)",
+		},
+		{
+			"a + b / c",
+			"(a + (b / c))",
+		},
+		{
+			"a + b / c + d * e - f",
+			"(((a + (b / c)) + (d * e)) - f)",
+		},
+		{
+			"3 + 4; -5 * 5",
+			"(3 + 4)((-5) * 5)",
+		},
+		{
+			"5 < 4 != 3 > 4",
+			"((5 < 4) != (3 > 4))",
+		},
+		{
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		actual := program.String()
+		if actual != tt.expected {
+			t.Errorf("Parsing result is unexpected. wanted=%q got=%q", tt.expected, actual)
+		}
+	}
 }
