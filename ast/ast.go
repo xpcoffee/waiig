@@ -211,7 +211,7 @@ func (ie *IfExpression) String() string {
 	out.WriteString(" ")
 	out.WriteString(ie.Consequence.String())
 	if ie.Alternative != nil {
-		out.WriteString(" else")
+		out.WriteString(" else ")
 		out.WriteString(ie.Alternative.String())
 	}
 

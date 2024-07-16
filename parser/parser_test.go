@@ -490,7 +490,7 @@ func TestIfExpression(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	expected := "if x < y x"
+	expected := "if (x < y) x"
 	actual := program.String()
 	if actual != expected {
 		t.Errorf("Parsing result is unexpected. wanted=%q got=%q", expected, actual)
@@ -532,7 +532,7 @@ func TestIfExpression(t *testing.T) {
 		return
 	}
 
-	if exp.Alternative.Statements != nil {
+	if exp.Alternative != nil && exp.Alternative.Statements != nil {
 		t.Fatalf("Expected a nil alternative, got=%q", exp.Alternative.String())
 	}
 }
@@ -544,7 +544,7 @@ func TestIfElseExpression(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	expected := "if x < y x"
+	expected := "if (x < y) x else y"
 	actual := program.String()
 	if actual != expected {
 		t.Errorf("Parsing result is unexpected. wanted=%q got=%q", expected, actual)
