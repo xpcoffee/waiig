@@ -593,3 +593,48 @@ func TestIfElseExpression(t *testing.T) {
 		return
 	}
 }
+
+func TestFunctionLiteralExpression(t *testing.T) {
+	input := `fn (x, y) { x + y }`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	expected := "fn(x,y)(x + y)"
+	actual := program.String()
+	if actual != expected {
+		t.Errorf("Parsing result is unexpected. wanted=%q got=%q", expected, actual)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected a single statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statement is not an expression. Got %T", program.Statements[0])
+	}
+
+	function, ok := stmt.Expression.(*ast.FunctionLiteralExpression)
+	if !ok {
+		t.Fatalf("Statement is not a FunctionLiteralExpression. Got %T", stmt.Expression)
+	}
+
+	if len(function.Parameters) != 2 {
+		t.Fatalf("Expected two parameters, got=%d", len(function.Parameters))
+	}
+	testLiteralExpression(t, &function.Parameters[0], "x")
+	testLiteralExpression(t, &function.Parameters[1], "y")
+
+	if len(function.Body.Statements) != 1 {
+		t.Fatalf("Expected single statement in body, got=%d", len(function.Body.Statements))
+	}
+
+	bodyStmt, ok := function.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Body statement is not a expression. Got %T", function.Body.Statements[0])
+	}
+
+	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+}

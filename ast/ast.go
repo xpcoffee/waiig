@@ -1,7 +1,10 @@
 package ast
 
-import "monkey/token"
-import "bytes"
+import (
+	"bytes"
+	"monkey/token"
+	"strings"
+)
 
 type Node interface {
 	TokenLiteral() string
@@ -214,6 +217,32 @@ func (ie *IfExpression) String() string {
 		out.WriteString(" else ")
 		out.WriteString(ie.Alternative.String())
 	}
+
+	return out.String()
+}
+
+type FunctionLiteralExpression struct {
+	Token      token.Token // the IF token
+	Parameters []Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteralExpression) expressionNode()      {}
+func (fl *FunctionLiteralExpression) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FunctionLiteralExpression) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+
+	for _, param := range fl.Parameters {
+		params = append(params, param.String())
+	}
+
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ","))
+	out.WriteString(")")
+	out.WriteString(fl.Body.String())
 
 	return out.String()
 }
