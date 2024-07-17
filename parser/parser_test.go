@@ -638,3 +638,43 @@ func TestFunctionLiteralExpression(t *testing.T) {
 
 	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
 }
+
+func TestFunctionParameterParsing(t *testing.T) {
+	tests := []struct {
+		input              string
+		expectedParameters []string
+	}{
+		{input: "fn(){}", expectedParameters: []string{}},
+		{input: "fn(x){}", expectedParameters: []string{"x"}},
+		{input: "fn(x,y,z){}", expectedParameters: []string{"x", "y", "z"}},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected a single statement, got %d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("Statement is not an expression. Got %T", program.Statements[0])
+		}
+
+		function, ok := stmt.Expression.(*ast.FunctionLiteralExpression)
+		if !ok {
+			t.Fatalf("Statement is not FunctionLiteralExpression. Got %T", stmt.Expression)
+		}
+
+		if len(function.Parameters) != len(tt.expectedParameters) {
+			t.Fatalf("Unexpected number of parameters, expected=%d got=%d", len(tt.expectedParameters), len(function.Parameters))
+		}
+
+		for i, p := range function.Parameters {
+			testLiteralExpression(t, &p, tt.expectedParameters[i])
+		}
+	}
+}

@@ -291,6 +291,16 @@ func (p *Parser) parseFunctionExpression() ast.Expression {
 		return nil
 	}
 	p.nextToken()
+	exp.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	exp.Body = p.parseBlockStatement()
+	return exp
+}
+
+func (p *Parser) parseFunctionParameters() []ast.Identifier {
 	parameters := []ast.Identifier{}
 
 	for !p.currTokenIs(token.RPAREN) {
@@ -306,13 +316,7 @@ func (p *Parser) parseFunctionExpression() ast.Expression {
 		p.nextToken()
 	}
 
-	exp.Parameters = parameters
-
-	if !p.expectPeek(token.LBRACE) {
-		return nil
-	}
-	exp.Body = p.parseBlockStatement()
-	return exp
+	return parameters
 }
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
