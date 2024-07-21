@@ -69,15 +69,12 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 }
 
 func evalInfixExpression(left object.Object, operator string, right object.Object) object.Object {
-	switch operator {
-	case "+":
-		return evalAddition(left, right)
-	case "-":
-		return evalSubtraction(left, right)
-	case "*":
-		return evalProduct(left, right)
-	case "/":
-		return evalDivision(left, right)
+	if right.Type() == object.INTEGER_OBJ || left.Type() == object.INTEGER_OBJ {
+		return evalIntegerInfixOperator(
+			left.(*object.Integer),
+			operator,
+			right.(*object.Integer),
+		)
 	}
 
 	return NULL
@@ -107,42 +104,17 @@ func evalMinusOperatorExpression(exp object.Object) object.Object {
 	return &object.Integer{Value: -value}
 }
 
-func evalAddition(left object.Object, right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
-		return NULL
+func evalIntegerInfixOperator(left *object.Integer, operator string, right *object.Integer) object.Object {
+	switch operator {
+	case "+":
+		return &object.Integer{Value: left.Value + right.Value}
+	case "-":
+		return &object.Integer{Value: left.Value - right.Value}
+	case "*":
+		return &object.Integer{Value: left.Value * right.Value}
+	case "/":
+		return &object.Integer{Value: left.Value / right.Value}
 	}
 
-	a := left.(*object.Integer).Value
-	b := right.(*object.Integer).Value
-	return &object.Integer{Value: a + b}
-}
-
-func evalSubtraction(left object.Object, right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
-		return NULL
-	}
-
-	a := left.(*object.Integer).Value
-	b := right.(*object.Integer).Value
-	return &object.Integer{Value: a - b}
-}
-
-func evalProduct(left object.Object, right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
-		return NULL
-	}
-
-	a := left.(*object.Integer).Value
-	b := right.(*object.Integer).Value
-	return &object.Integer{Value: a * b}
-}
-
-func evalDivision(left object.Object, right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
-		return NULL
-	}
-
-	a := left.(*object.Integer).Value
-	b := right.(*object.Integer).Value
-	return &object.Integer{Value: a / b}
+	return NULL
 }
