@@ -77,6 +77,14 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 		)
 	}
 
+	if right.Type() == object.BOOLEAN_OBJ || left.Type() == object.INTEGER_OBJ {
+		return evalBooleanInfixOperator(
+			left.(*object.Boolean),
+			operator,
+			right.(*object.Boolean),
+		)
+	}
+
 	return NULL
 }
 
@@ -114,6 +122,25 @@ func evalIntegerInfixOperator(left *object.Integer, operator string, right *obje
 		return &object.Integer{Value: left.Value * right.Value}
 	case "/":
 		return &object.Integer{Value: left.Value / right.Value}
+	case "==":
+		return nativeBoolToBooleanObject(left.Value == right.Value)
+	case "!=":
+		return nativeBoolToBooleanObject(left.Value != right.Value)
+	case ">":
+		return nativeBoolToBooleanObject(left.Value > right.Value)
+	case "<":
+		return nativeBoolToBooleanObject(left.Value < right.Value)
+	}
+
+	return NULL
+}
+
+func evalBooleanInfixOperator(left *object.Boolean, operator string, right *object.Boolean) object.Object {
+	switch operator {
+	case "==":
+		return nativeBoolToBooleanObject(left.Value == right.Value)
+	case "!=":
+		return nativeBoolToBooleanObject(left.Value != right.Value)
 	}
 
 	return NULL
