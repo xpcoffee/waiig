@@ -28,6 +28,11 @@ func Eval(node ast.Node) object.Object {
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
+
+	case *ast.InfixExpression:
+		right := Eval(node.Right)
+		left := Eval(node.Left)
+		return evalInfixExpression(left, node.Operator, right)
 	}
 
 	return nil
@@ -63,6 +68,21 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	return NULL
 }
 
+func evalInfixExpression(left object.Object, operator string, right object.Object) object.Object {
+	switch operator {
+	case "+":
+		return evalAddition(left, right)
+	case "-":
+		return evalSubtraction(left, right)
+	case "*":
+		return evalProduct(left, right)
+	case "/":
+		return evalDivision(left, right)
+	}
+
+	return NULL
+}
+
 func evalBangOperatorExpression(exp object.Object) object.Object {
 	switch exp {
 	case TRUE:
@@ -85,4 +105,44 @@ func evalMinusOperatorExpression(exp object.Object) object.Object {
 
 	value := exp.(*object.Integer).Value
 	return &object.Integer{Value: -value}
+}
+
+func evalAddition(left object.Object, right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
+		return NULL
+	}
+
+	a := left.(*object.Integer).Value
+	b := right.(*object.Integer).Value
+	return &object.Integer{Value: a + b}
+}
+
+func evalSubtraction(left object.Object, right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
+		return NULL
+	}
+
+	a := left.(*object.Integer).Value
+	b := right.(*object.Integer).Value
+	return &object.Integer{Value: a - b}
+}
+
+func evalProduct(left object.Object, right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
+		return NULL
+	}
+
+	a := left.(*object.Integer).Value
+	b := right.(*object.Integer).Value
+	return &object.Integer{Value: a * b}
+}
+
+func evalDivision(left object.Object, right object.Object) object.Object {
+	if right.Type() != object.INTEGER_OBJ || left.Type() != object.INTEGER_OBJ {
+		return NULL
+	}
+
+	a := left.(*object.Integer).Value
+	b := right.(*object.Integer).Value
+	return &object.Integer{Value: a / b}
 }
