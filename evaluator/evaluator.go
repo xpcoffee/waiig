@@ -69,20 +69,20 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 }
 
 func evalInfixExpression(left object.Object, operator string, right object.Object) object.Object {
-	if right.Type() == object.INTEGER_OBJ || left.Type() == object.INTEGER_OBJ {
+	switch {
+	case right.Type() == object.INTEGER_OBJ && left.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixOperator(
 			left.(*object.Integer),
 			operator,
 			right.(*object.Integer),
 		)
-	}
 
-	if right.Type() == object.BOOLEAN_OBJ || left.Type() == object.INTEGER_OBJ {
-		return evalBooleanInfixOperator(
-			left.(*object.Boolean),
-			operator,
-			right.(*object.Boolean),
-		)
+	case operator == "==":
+		// the == and != operators do pointer comparison for boolean and NULL
+		// other evaluations (string, objects etc) need to happen before this point
+		return nativeBoolToBooleanObject(left == right)
+	case operator == "!=":
+		return nativeBoolToBooleanObject(left != right)
 	}
 
 	return NULL
@@ -130,17 +130,6 @@ func evalIntegerInfixOperator(left *object.Integer, operator string, right *obje
 		return nativeBoolToBooleanObject(left.Value > right.Value)
 	case "<":
 		return nativeBoolToBooleanObject(left.Value < right.Value)
-	}
-
-	return NULL
-}
-
-func evalBooleanInfixOperator(left *object.Boolean, operator string, right *object.Boolean) object.Object {
-	switch operator {
-	case "==":
-		return nativeBoolToBooleanObject(left.Value == right.Value)
-	case "!=":
-		return nativeBoolToBooleanObject(left.Value != right.Value)
 	}
 
 	return NULL
