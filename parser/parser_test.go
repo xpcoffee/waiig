@@ -678,3 +678,38 @@ func TestFunctionParameterParsing(t *testing.T) {
 		}
 	}
 }
+func TestFunctionCallExpression(t *testing.T) {
+	input := `add(1, 2 * 3, 4 + 5);`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	expected := "add(1,(2 * 3),(4 + 5))"
+	actual := program.String()
+	if actual != expected {
+		t.Errorf("Parsing result is unexpected. wanted=%q got=%q", expected, actual)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected a single statement, got %d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statement is not an expression. Got %T", program.Statements[0])
+	}
+
+	call, ok := stmt.Expression.(*ast.FunctionCallExpression)
+	if !ok {
+		t.Fatalf("Statement is not a FunctionCallExpression. Got %T", stmt.Expression)
+	}
+
+	if len(call.Parameters) != 3 {
+		t.Fatalf("Expected two parameters, got=%d", len(call.Parameters))
+	}
+	testLiteralExpression(t, call.Parameters[0], 1)
+	testInfixExpression(t, call.Parameters[1], 2, "*", 3)
+	testInfixExpression(t, call.Parameters[2], 4, "+", 5)
+}

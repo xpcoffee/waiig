@@ -29,6 +29,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	token.LPAREN:   CALL,
 }
 
 type (
@@ -72,6 +73,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfixParseFn(token.LT, p.parseInfixExpression)
 	p.registerInfixParseFn(token.EQ, p.parseInfixExpression)
 	p.registerInfixParseFn(token.NOT_EQ, p.parseInfixExpression)
+	p.registerInfixParseFn(token.LPAREN, p.parseFunctionCall)
 
 	// initialize peek & cur
 	p.nextToken()
@@ -173,7 +175,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 	leftExp := parsePrefix()
 
-	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+	for !p.peekTokenIs(token.SEMICOLON) && !p.peekTokenIs(token.COMMA) && precedence < p.peekPrecedence() {
 		parseInfix := p.infixParseFns[p.peekToken.Type]
 		if parseInfix == nil {
 			return leftExp
@@ -336,6 +338,30 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	return block
 }
 
+func (p *Parser) parseFunctionCall(expr ast.Expression) ast.Expression {
+	fmt.Printf("Parsing function call %s", p.curToken.Literal)
+	exp := &ast.FunctionCallExpression{Token: p.curToken, Function: expr}
+
+	p.nextToken()
+	exp.Parameters = p.parseFunctionCallParameters()
+	return exp
+}
+
+func (p *Parser) parseFunctionCallParameters() []ast.Expression {
+	parameters := []ast.Expression{}
+
+	for !p.currTokenIs(token.RPAREN) {
+		parameters = append(parameters, p.parseExpression(LOWEST))
+
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+		}
+		p.nextToken()
+	}
+
+	return parameters
+}
+
 func (p *Parser) currTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
 }
@@ -371,7 +397,7 @@ func (p *Parser) peekPrecedence() int {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	msg := fmt.Sprintf("unexpected next token expected=%s got=%s", t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
 }
 

@@ -221,6 +221,7 @@ func (ie *IfExpression) String() string {
 	return out.String()
 }
 
+// Function literal
 type FunctionLiteralExpression struct {
 	Token      token.Token // the IF token
 	Parameters []Identifier
@@ -243,6 +244,32 @@ func (fl *FunctionLiteralExpression) String() string {
 	out.WriteString(strings.Join(params, ","))
 	out.WriteString(")")
 	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+// Function call
+type FunctionCallExpression struct {
+	Token      token.Token // the IF token
+	Function   Expression  // identifier or function literal
+	Parameters []Expression
+}
+
+func (fc *FunctionCallExpression) expressionNode()      {}
+func (fc *FunctionCallExpression) TokenLiteral() string { return fc.Token.Literal }
+func (fc *FunctionCallExpression) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+
+	for _, param := range fc.Parameters {
+		params = append(params, param.String())
+	}
+
+	out.WriteString(fc.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ","))
+	out.WriteString(")")
 
 	return out.String()
 }
