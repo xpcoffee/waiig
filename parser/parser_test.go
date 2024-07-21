@@ -21,35 +21,36 @@ func checkParserErrors(t *testing.T, p *Parser) {
 }
 
 func TestLetStatements(t *testing.T) {
-	input := `
-        let x = 5;
-        let y = 10;
-        let fooBar = 838383;
-    `
-
-	l := lexer.New(input)
-	p := New(l)
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram returned nil")
-	}
-	if len(program.Statements) != 3 {
-		t.Fatalf("Program does not contain 3 statements. got=%d", len(program.Statements))
-	}
-
 	tests := []struct {
+		input              string
 		expectedIdentifier string
+		expectedValue      interface{}
 	}{
-		{"x"},
-		{"y"},
-		{"fooBar"},
+		{"let x = 5;", "x", 5},
+		{"let y = true;", "y", true},
+		{"let foobar = y;", "foobar", "y"},
 	}
 
-	for i, tt := range tests {
-		stmt := program.Statements[i]
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if program == nil {
+			t.Fatalf("ParseProgram returned nil")
+		}
+		if len(program.Statements) != 1 {
+			t.Errorf("Expected a single statement, got %d", len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
 		if !(testLetStatement(t, stmt, tt.expectedIdentifier)) {
+			return
+		}
+
+		val := stmt.(*ast.LetStatement).Value
+		if !testLiteralExpression(t, val, tt.expectedValue) {
 			return
 		}
 	}
@@ -81,42 +82,36 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func TestReturnStatements(t *testing.T) {
-	input := `
-        return 5;
-        return 10;
-        return 9933322;
-    `
-
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram returned nil")
-	}
-	if len(program.Statements) != 3 {
-		t.Fatalf("Program does not contain 3 statements. got=%d", len(program.Statements))
-	}
-
 	tests := []struct {
+		input              string
 		expectedExpression string
 	}{
-		{"5"},
-		{"10"},
-		{"9933322"},
+		{"return 5;", "5"},
+		{"return x;", "x"},
+		{"return fn() { x + y };", "fn()(x + y)"},
 	}
 
-	for i, tt := range tests {
-		stmt := program.Statements[i]
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if program == nil {
+			t.Fatalf("ParseProgram returned nil")
+		}
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected a single statement, got %d", len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
 		if !(testReturnStatement(t, stmt, tt.expectedExpression)) {
 			return
 		}
 	}
 }
 
-func testReturnStatement(t *testing.T, s ast.Statement, name string) bool {
+func testReturnStatement(t *testing.T, s ast.Statement, expression string) bool {
 	rtrnStmt, ok := s.(*ast.ReturnStatement)
 	if !ok {
 		t.Errorf("statement is not an ast.ReturnStatement. got=%s", s)
@@ -128,10 +123,10 @@ func testReturnStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
-	// if rtrnStmt.ReturnValue.String() != name {
-	// 	t.Errorf("Unexpected return expression. expected=%q got=%q", name, rtrnStmt.ReturnValue.String())
-	// 	return false
-	// }
+	if rtrnStmt.ReturnValue.String() != expression {
+		t.Errorf("Unexpected return expression. expected=%q got=%q", expression, rtrnStmt.ReturnValue.String())
+		return false
+	}
 
 	return true
 }
