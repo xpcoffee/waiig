@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"monkey/ast"
 	"monkey/object"
 )
@@ -56,6 +57,9 @@ func evalProgram(statements []ast.Statement) object.Object {
 		if returnValue, ok := result.(*object.ReturnValue); ok {
 			return returnValue.Value
 		}
+		if error, ok := result.(*object.Error); ok {
+			return error
+		}
 	}
 
 	return result
@@ -66,7 +70,7 @@ func evalBlockStatement(blockStatement *ast.BlockStatement) object.Object {
 
 	for _, stmt := range blockStatement.Statements {
 		result = Eval(stmt)
-		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+		if result != nil && (result.Type() == object.RETURN_VALUE_OBJ || result.Type() == object.ERROR_OBJ) {
 			return result
 		}
 	}
@@ -88,9 +92,9 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalBangOperatorExpression(right)
 	case "-":
 		return evalMinusOperatorExpression(right)
+	default:
+		return newError("unkown operator: %s%s", operator, right.Type())
 	}
-
-	return NULL
 }
 
 func evalInfixExpression(left object.Object, operator string, right object.Object) object.Object {
@@ -108,9 +112,14 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
+
+	case left.Type() != right.Type():
+		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+
+	default:
+		return newError("unkown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 
-	return NULL
 }
 
 func evalBangOperatorExpression(exp object.Object) object.Object {
@@ -130,7 +139,7 @@ func evalBangOperatorExpression(exp object.Object) object.Object {
 
 func evalMinusOperatorExpression(exp object.Object) object.Object {
 	if exp.Type() != object.INTEGER_OBJ {
-		return NULL
+		return newError("unkown operator: -%s", exp.Type())
 	}
 
 	value := exp.(*object.Integer).Value
@@ -155,9 +164,9 @@ func evalIntegerInfixOperator(left *object.Integer, operator string, right *obje
 		return nativeBoolToBooleanObject(left.Value > right.Value)
 	case "<":
 		return nativeBoolToBooleanObject(left.Value < right.Value)
+	default:
+		return newError("unkown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
-
-	return NULL
 }
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
@@ -188,4 +197,8 @@ func isTruthy(obj object.Object) bool {
 func evalReturnStatement(rs *ast.ReturnStatement) object.Object {
 	value := Eval(rs.ReturnValue)
 	return &object.ReturnValue{Value: value}
+}
+
+func newError(format string, a ...interface{}) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
