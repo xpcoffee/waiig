@@ -28,11 +28,20 @@ func Eval(node ast.Node) object.Object {
 
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(node.Operator, right)
 
 	case *ast.InfixExpression:
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		left := Eval(node.Left)
+		if isError(left) {
+			return left
+		}
 		return evalInfixExpression(left, node.Operator, right)
 
 	case *ast.IfExpression:
@@ -72,7 +81,6 @@ func evalBlockStatement(blockStatement *ast.BlockStatement) object.Object {
 	for _, stmt := range blockStatement.Statements {
 		result = Eval(stmt)
 		if result != nil {
-
 			rt := result.Type()
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 				return result
@@ -176,6 +184,9 @@ func evalIntegerInfixOperator(left *object.Integer, operator string, right *obje
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := Eval(ie.Condition)
+	if isError(condition) {
+		return condition
+	}
 
 	if isTruthy(condition) {
 		return Eval(ie.Consequence)
@@ -201,9 +212,20 @@ func isTruthy(obj object.Object) bool {
 
 func evalReturnStatement(rs *ast.ReturnStatement) object.Object {
 	value := Eval(rs.ReturnValue)
+	if isError(value) {
+		return value
+	}
 	return &object.ReturnValue{Value: value}
 }
 
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func isError(obj object.Object) bool {
+	if obj == nil {
+		return false
+	}
+
+	return obj.Type() == object.ERROR_OBJ
 }
