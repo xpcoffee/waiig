@@ -12,13 +12,13 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
-func Eval(node ast.Node) object.Object {
+func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalProgram(node.Statements)
+		return evalProgram(node.Statements, env)
 
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression)
+		return Eval(node.Expression, env)
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -27,42 +27,48 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToBooleanObject(node.Value)
 
 	case *ast.PrefixExpression:
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalPrefixExpression(node.Operator, right)
 
 	case *ast.InfixExpression:
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
-		left := Eval(node.Left)
+		left := Eval(node.Left, env)
 		if isError(left) {
 			return left
 		}
 		return evalInfixExpression(left, node.Operator, right)
 
 	case *ast.IfExpression:
-		return evalIfExpression(node)
+		return evalIfExpression(node, env)
 
 	case *ast.BlockStatement:
-		return evalBlockStatement(node)
+		return evalBlockStatement(node, env)
 
 	case *ast.ReturnStatement:
-		return evalReturnStatement(node)
+		return evalReturnStatement(node, env)
+
+	case *ast.LetStatement:
+		return evalLetStatement(node, env)
+
+	case *ast.Identifier:
+		return evalIdentifier(node, env)
 	}
 
 	return nil
 }
 
 // returns the evalutation of the LAST statement
-func evalProgram(statements []ast.Statement) object.Object {
+func evalProgram(statements []ast.Statement, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, stmt := range statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 
 		switch result := result.(type) {
 		case *object.ReturnValue:
@@ -75,11 +81,11 @@ func evalProgram(statements []ast.Statement) object.Object {
 	return result
 }
 
-func evalBlockStatement(blockStatement *ast.BlockStatement) object.Object {
+func evalBlockStatement(blockStatement *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, stmt := range blockStatement.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 		if result != nil {
 			rt := result.Type()
 			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
@@ -182,16 +188,16 @@ func evalIntegerInfixOperator(left *object.Integer, operator string, right *obje
 	}
 }
 
-func evalIfExpression(ie *ast.IfExpression) object.Object {
-	condition := Eval(ie.Condition)
+func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
+	condition := Eval(ie.Condition, env)
 	if isError(condition) {
 		return condition
 	}
 
 	if isTruthy(condition) {
-		return Eval(ie.Consequence)
+		return Eval(ie.Consequence, env)
 	} else if ie.Alternative != nil {
-		return Eval(ie.Alternative)
+		return Eval(ie.Alternative, env)
 	} else {
 		return NULL
 	}
@@ -210,8 +216,8 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
-func evalReturnStatement(rs *ast.ReturnStatement) object.Object {
-	value := Eval(rs.ReturnValue)
+func evalReturnStatement(rs *ast.ReturnStatement, env *object.Environment) object.Object {
+	value := Eval(rs.ReturnValue, env)
 	if isError(value) {
 		return value
 	}
@@ -228,4 +234,23 @@ func isError(obj object.Object) bool {
 	}
 
 	return obj.Type() == object.ERROR_OBJ
+}
+
+func evalLetStatement(ls *ast.LetStatement, env *object.Environment) object.Object {
+	val := Eval(ls.Value, env)
+	if isError(val) {
+		return val
+	}
+	env.Set(ls.Name.Value, val)
+
+	return val
+}
+
+func evalIdentifier(ie *ast.Identifier, env *object.Environment) object.Object {
+	val, ok := env.Get(ie.Value)
+	if !ok {
+		return newError("identifier not found: " + ie.Value)
+	}
+
+	return val
 }
