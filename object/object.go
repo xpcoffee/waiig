@@ -1,7 +1,10 @@
 package object
 
 import (
+	"bytes"
 	"fmt"
+	"monkey/ast"
+	"strings"
 )
 
 type ObjectType string
@@ -12,6 +15,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNCTION_OBJ     = "FUNCTION"
 )
 
 type Object interface {
@@ -75,4 +79,30 @@ func (e *Environment) Get(name string) (Object, bool) {
 func (e *Environment) Set(name string, value Object) Object {
 	e.store[name] = value
 	return value
+}
+
+// functions
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (fn *Function) Type() ObjectType { return ERROR_OBJ }
+func (fn *Function) Inspect() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, idnt := range fn.Parameters {
+		params = append(params, idnt.Value)
+	}
+
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(fn.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
 }
