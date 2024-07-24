@@ -224,7 +224,7 @@ func (ie *IfExpression) String() string {
 // Function literal
 type FunctionLiteralExpression struct {
 	Token      token.Token // the IF token
-	Parameters []Identifier
+	Parameters []*Identifier
 	Body       *BlockStatement
 }
 

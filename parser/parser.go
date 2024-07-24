@@ -305,15 +305,15 @@ func (p *Parser) parseFunctionExpression() ast.Expression {
 	return exp
 }
 
-func (p *Parser) parseFunctionParameters() []ast.Identifier {
-	parameters := []ast.Identifier{}
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	parameters := []*ast.Identifier{}
 
 	for !p.currTokenIs(token.RPAREN) {
 		idnt, ok := p.parseIdentifier().(*ast.Identifier)
 		if !ok {
 			return nil
 		}
-		parameters = append(parameters, *idnt)
+		parameters = append(parameters, idnt)
 
 		if p.peekTokenIs(token.COMMA) {
 			p.nextToken()
