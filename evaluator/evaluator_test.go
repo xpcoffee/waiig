@@ -258,3 +258,21 @@ func TestFunctionObject(t *testing.T) {
 		t.Fatalf("incorrect function body. expected=%s got=%s", expectedBody, fn.Body.String())
 	}
 }
+
+func TestFunctionApplication(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let identity = fn(x) { x; }; identity(5)", 5},
+		{"let identity = fn(x) { return x; }; identity(6)", 6},
+		{"let double = fn(y) { 2 * y; }; double(7)", 14},
+		{"let add = fn(x, y) { x + y; }; add(8, 8)", 16},
+		{"let add = fn(x, y) { x + y; }; add(5 + 6, add(7, 8))", 26},
+		{"fn(x){ x; }(9);", 9},
+	}
+
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(tt.input), tt.expected)
+	}
+}

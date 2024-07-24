@@ -62,25 +62,6 @@ func (er *Error) Inspect() string  { return "ERROR: " + er.Message }
 func (er *Error) Type() ObjectType { return ERROR_OBJ }
 
 // environment
-type Environment struct {
-	store map[string]Object
-}
-
-func NewEnvironment() *Environment {
-	s := make(map[string]Object)
-	return &Environment{store: s}
-}
-
-func (e *Environment) Get(name string) (Object, bool) {
-	val, ok := e.store[name]
-	return val, ok
-}
-
-func (e *Environment) Set(name string, value Object) Object {
-	e.store[name] = value
-	return value
-}
-
 // functions
 type Function struct {
 	Parameters []*ast.Identifier
@@ -88,7 +69,7 @@ type Function struct {
 	Env        *Environment
 }
 
-func (fn *Function) Type() ObjectType { return ERROR_OBJ }
+func (fn *Function) Type() ObjectType { return FUNCTION_OBJ }
 func (fn *Function) Inspect() string {
 	var out bytes.Buffer
 

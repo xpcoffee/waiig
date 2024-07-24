@@ -58,9 +58,24 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+
 	case *ast.FunctionLiteralExpression:
 		return &object.Function{Parameters: node.Parameters, Body: node.Body, Env: env}
 
+	case *ast.FunctionCallExpression:
+		function := Eval(node.Function, env)
+		if isError(function) {
+			fmt.Printf("problem inital Eval: %s\n", function.Inspect())
+			return function
+		}
+
+		args := evalExpressions(node.Parameters, env)
+		if len(args) == 1 && isError(args[0]) {
+			fmt.Printf("problem with parameters: %s\n", args[0].Inspect())
+			return args[0]
+		}
+
+		return applyFunction(function, args)
 	}
 
 	return nil
@@ -256,4 +271,53 @@ func evalIdentifier(ie *ast.Identifier, env *object.Environment) object.Object {
 	}
 
 	return val
+}
+
+func evalExpressions(expressions []ast.Expression, env *object.Environment) []object.Object {
+	results := []object.Object{}
+
+	for _, exp := range expressions {
+		result := Eval(exp, env)
+		if isError(result) {
+			return []object.Object{result}
+		}
+		results = append(results, result)
+	}
+
+	return results
+}
+
+func applyFunction(fn object.Object, args []object.Object) object.Object {
+	function, ok := fn.(*object.Function)
+	if !ok {
+		return newError("not a function: %T", fn)
+	}
+
+	closure := extendFunctionEnv(function, args)
+	evaluated := Eval(function.Body, closure)
+
+	return unwrapReturnValue(evaluated)
+}
+
+func extendFunctionEnv(
+	fn *object.Function,
+	args []object.Object,
+) *object.Environment {
+	env := object.NewEnclosedEnvironment(fn.Env)
+
+	for paramIndex, param := range fn.Parameters {
+		env.Set(param.Value, args[paramIndex])
+	}
+
+	return env
+}
+
+// Prevents a value returned from a function from short-circuiting
+// parent blocks
+func unwrapReturnValue(obj object.Object) object.Object {
+	rtnVal, ok := obj.(*object.ReturnValue)
+	if !ok {
+		return obj
+	}
+	return rtnVal.Value
 }
