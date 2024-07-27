@@ -631,8 +631,8 @@ func TestFunctionLiteralExpression(t *testing.T) {
 	if len(function.Parameters) != 2 {
 		t.Fatalf("Expected two parameters, got=%d", len(function.Parameters))
 	}
-	testLiteralExpression(t, &function.Parameters[0], "x")
-	testLiteralExpression(t, &function.Parameters[1], "y")
+	testLiteralExpression(t, function.Parameters[0], "x")
+	testLiteralExpression(t, function.Parameters[1], "y")
 
 	if len(function.Body.Statements) != 1 {
 		t.Fatalf("Expected single statement in body, got=%d", len(function.Body.Statements))
@@ -681,7 +681,7 @@ func TestFunctionParameterParsing(t *testing.T) {
 		}
 
 		for i, p := range function.Parameters {
-			testLiteralExpression(t, &p, tt.expectedParameters[i])
+			testLiteralExpression(t, p, tt.expectedParameters[i])
 		}
 	}
 }
@@ -719,4 +719,24 @@ func TestFunctionCallExpression(t *testing.T) {
 	testLiteralExpression(t, call.Parameters[0], 1)
 	testInfixExpression(t, call.Parameters[1], 2, "*", 3)
 	testInfixExpression(t, call.Parameters[2], 4, "+", 5)
+}
+
+func TestStringLiteralExpression(t *testing.T) {
+	input := `"hello world"`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	literal, ok := stmt.Expression.(*ast.StringLiteral)
+
+	if !ok {
+		t.Fatalf("expression is not a string literal. got=%T", stmt.Expression)
+	}
+
+	if literal.Value != "hello world" {
+		t.Fatalf("wrong string literal value. expected=%s, got=%s", "hello world", literal.Value)
+	}
 }

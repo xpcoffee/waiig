@@ -40,6 +40,9 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+
+	// extension datatypes
+	STRING = "STRING"
 )
 
 var keywords = map[string]TokenType{
