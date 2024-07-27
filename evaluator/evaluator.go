@@ -146,6 +146,12 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 			right.(*object.Integer),
 		)
 
+	case right.Type() == object.STRING_OBJ && left.Type() == object.STRING_OBJ:
+		if operator == "+" {
+			return &object.String{Value: left.(*object.String).Value + right.(*object.String).Value}
+		}
+		return newError("unkown operator: %s %s %s", left.Type(), operator, right.Type())
+
 	case operator == "==":
 		// the == and != operators do pointer comparison for boolean and NULL
 		// other evaluations (string, objects etc) need to happen before this point
