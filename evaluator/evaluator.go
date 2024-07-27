@@ -274,12 +274,15 @@ func evalLetStatement(ls *ast.LetStatement, env *object.Environment) object.Obje
 }
 
 func evalIdentifier(ie *ast.Identifier, env *object.Environment) object.Object {
-	val, ok := env.Get(ie.Value)
-	if !ok {
-		return newError("identifier not found: " + ie.Value)
+	if val, ok := env.Get(ie.Value); ok {
+		return val
 	}
 
-	return val
+	if builtin, ok := builtins[ie.Value]; ok {
+		return builtin
+	}
+
+	return newError("identifier not found: " + ie.Value)
 }
 
 func evalExpressions(expressions []ast.Expression, env *object.Environment) []object.Object {
@@ -297,15 +300,17 @@ func evalExpressions(expressions []ast.Expression, env *object.Environment) []ob
 }
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	function, ok := fn.(*object.Function)
-	if !ok {
+	switch fn := fn.(type) {
+	case *object.Function:
+		closure := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, closure)
+		return unwrapReturnValue(evaluated)
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return newError("not a function: %T", fn)
 	}
 
-	closure := extendFunctionEnv(function, args)
-	evaluated := Eval(function.Body, closure)
-
-	return unwrapReturnValue(evaluated)
 }
 
 func extendFunctionEnv(
