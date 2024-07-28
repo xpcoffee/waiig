@@ -338,3 +338,35 @@ func TestBuiltinFunctions(t *testing.T) {
 		}
 	}
 }
+
+func TestArray(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []interface{}
+	}{
+		{`[1,"string"];`, []interface{}{1, "string"}},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		array, ok := evaluated.(*object.Array)
+		if !ok {
+			t.Errorf("object is not array. got=%T (%+v)", evaluated, evaluated)
+		}
+
+		for idx, el := range array.Elements {
+			switch expected := tt.expected[idx].(type) {
+			case int:
+				testIntegerObject(t, el, int64(expected))
+			case string:
+				str, ok := el.(*object.String)
+				if !ok {
+					t.Errorf("object is not a String. got=%T (%+v)", evaluated, evaluated)
+				}
+				if str.Value != expected {
+					t.Errorf("wrong string value. expected=%s, got=%s", expected, str.Value)
+				}
+			}
+		}
+	}
+}
