@@ -77,11 +77,26 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 		return applyFunction(function, args)
 
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
+
 	case *ast.ArrayLiteral:
 		return &object.Array{Elements: evalArrayElements(node.Elements, env)}
 
-	case *ast.StringLiteral:
-		return &object.String{Value: node.Value}
+	case *ast.IndexingExpression:
+		evaluatedIndex := Eval(node.Index, env)
+		if evaluatedIndex.Type() != object.INTEGER_OBJ {
+			return newError("Cannot use as index %s", evaluatedIndex.Type())
+		}
+		index := evaluatedIndex.(*object.Integer)
+
+		target := Eval(node.Target, env)
+		switch target := target.(type) {
+		case *object.Array:
+			return target.Elements[index.Value]
+		default:
+			return newError("Cannot index type %s", target.Type())
+		}
 	}
 
 	return nil

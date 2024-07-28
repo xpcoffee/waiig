@@ -777,6 +777,34 @@ func TestArrayLiteralExpression(t *testing.T) {
 
 	expected := "fn(x)(x + 1)"
 	if function.String() != expected {
-		t.Fatalf("incorrect function argument. expected=%q got=%q", expected, function.String())
+		t.Fatalf("incorrect function string representation. expected=%q got=%q", expected, function.String())
+	}
+
+}
+
+func TestArrayIndexingExpression(t *testing.T) {
+	input := `[1,2,4][4];`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	exp, ok := stmt.Expression.(*ast.IndexingExpression)
+	if !ok {
+		t.Fatalf("expression is not an IndexingExpression. got=%T (%+v)", stmt.Expression, stmt.Expression)
+	}
+
+	_, ok = exp.Target.(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("target is not an ArrayLiteral. got=%T (%+v)", exp.Target, exp.Target)
+	}
+
+	testIntegerLiteral(t, exp.Index, 4)
+
+	expected := "[1,2,4][4]"
+	if exp.String() != expected {
+		t.Fatalf("incorrect array indexing string representation. expected=%q got=%q", expected, exp.String())
 	}
 }

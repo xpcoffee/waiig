@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"monkey/lexer"
 	"monkey/object"
 	"monkey/parser"
@@ -41,6 +42,9 @@ func testEval(input string) object.Object {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	env := object.NewEnvironment()
+	if len(p.Errors()) > 0 {
+		fmt.Printf("Parser errors: %v", p.Errors())
+	}
 
 	return Eval(program, env)
 }
@@ -49,7 +53,7 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	result, ok := obj.(*object.Integer)
 
 	if !ok {
-		t.Errorf("evaluated object is not an object.Integer. got=%T", obj)
+		t.Errorf("evaluated object is not an object.Integer. got=%T (%+v)", obj, obj)
 		return false
 	}
 	if result.Value != expected {
@@ -339,14 +343,9 @@ func testObject(t *testing.T, evaluated object.Object, expected interface{}) {
 	case int:
 		testIntegerObject(t, evaluated, int64(expected))
 	case string:
-		if strings.Contains(expected, "Err:") {
-			err, ok := evaluated.(*object.Error)
-			if !ok {
-				t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
-			}
-			if "Err: "+err.Message != expected {
-				t.Errorf("wrong error message. expected=%s, got=%s", expected, err.Message)
-			}
+		if strings.Contains(expected, "Err: ") {
+			expectedMessage := strings.TrimLeft(expected, "Err: ")
+			testError(t, evaluated, expectedMessage)
 			return
 		}
 
@@ -370,6 +369,17 @@ func testObject(t *testing.T, evaluated object.Object, expected interface{}) {
 			testObject(t, el, expected[i])
 		}
 	}
+}
+
+func testError(t *testing.T, evaluated object.Object, expectedMessage string) {
+	err, ok := evaluated.(*object.Error)
+	if !ok {
+		t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+	}
+	if err.Message != expectedMessage {
+		t.Errorf("wrong error message. expected=%s, got=%s", expectedMessage, err.Message)
+	}
+	return
 }
 
 func TestArray(t *testing.T) {
@@ -402,4 +412,23 @@ func TestArray(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestIndexing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`[1,2,3][1]`, 2},
+		{`fn(){ [4,5,6]}()[0]`, 4},
+		{`fn(){[4,5,6]}() [ fn(){2}() ]`, 6},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testObject(t, evaluated, tt.expected)
+	}
+
+	testError(t, testEval("fn(){ 2 }[3]"), "Cannot index type FUNCTION")
+	testError(t, testEval(`[3, 4]["hiya"]`), "Cannot use as index STRING")
 }

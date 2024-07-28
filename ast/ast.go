@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"monkey/token"
 	"strings"
 )
@@ -306,4 +307,17 @@ func (al *ArrayLiteral) String() string {
 	out.WriteString("]")
 
 	return out.String()
+}
+
+// Index expression
+type IndexingExpression struct {
+	Token  token.Token
+	Index  Expression
+	Target Expression
+}
+
+func (al *IndexingExpression) expressionNode()      {}
+func (ie *IndexingExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IndexingExpression) String() string {
+	return fmt.Sprintf("%s[%s]", ie.Target.String(), ie.Index.String())
 }
