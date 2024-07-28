@@ -93,6 +93,14 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		target := Eval(node.Target, env)
 		switch target := target.(type) {
 		case *object.Array:
+			if index.Value < 0 {
+				return newError("Cannot index with a negative number %d", index.Value)
+			}
+
+			if index.Value >= int64(len(target.Elements)) {
+				return newError("Index is larger than the max. index=%d, max=%d", index.Value, len(target.Elements)-1)
+			}
+
 			return target.Elements[index.Value]
 		default:
 			return newError("Cannot index type %s", target.Type())

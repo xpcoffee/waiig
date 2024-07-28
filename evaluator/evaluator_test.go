@@ -431,4 +431,6 @@ func TestIndexing(t *testing.T) {
 
 	testError(t, testEval("fn(){ 2 }[3]"), "Cannot index type FUNCTION")
 	testError(t, testEval(`[3, 4]["hiya"]`), "Cannot use as index STRING")
+	testError(t, testEval(`[3, 4][3]`), "Index is larger than the max. index=3, max=1")
+	testError(t, testEval(`[3, 4][-1]`), "Cannot index with a negative number -1")
 }
