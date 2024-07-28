@@ -730,13 +730,53 @@ func TestStringLiteralExpression(t *testing.T) {
 	checkParserErrors(t, p)
 
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	literal, ok := stmt.Expression.(*ast.StringLiteral)
+	testStringLiteral(t, stmt.Expression, "hello world")
+}
 
+func testStringLiteral(t *testing.T, exp ast.Expression, expected string) bool {
+	literal, ok := exp.(*ast.StringLiteral)
+
+	if !ok {
+		t.Errorf("expression is not a string literal. got=%T", exp)
+		return false
+	}
+
+	if literal.Value != expected {
+		t.Errorf("wrong string literal value. expected=%s, got=%s", expected, literal.Value)
+		return false
+	}
+
+	return true
+}
+
+func TestArrayLiteralExpression(t *testing.T) {
+	input := `[1, "hello", fn(x) { x + 1 }];`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	literal, ok := stmt.Expression.(*ast.ArrayLiteral)
 	if !ok {
 		t.Fatalf("expression is not a string literal. got=%T", stmt.Expression)
 	}
 
-	if literal.Value != "hello world" {
-		t.Fatalf("wrong string literal value. expected=%s, got=%s", "hello world", literal.Value)
+	if len(literal.Elements) != 3 {
+		t.Fatalf("wrong number of elements. expected=%d got=%d", 3, len(literal.Elements))
+	}
+
+	testIntegerLiteral(t, literal.Elements[0], 1)
+	testStringLiteral(t, literal.Elements[1], "hello")
+
+	function, ok := literal.Elements[2].(*ast.FunctionLiteralExpression)
+	if !ok {
+		t.Fatalf("Statement is not a FunctionLiteralExpression. Got %T", stmt.Expression)
+	}
+
+	expected := "fn(x)(x + 1)"
+	if function.String() != expected {
+		t.Fatalf("incorrect function argument. expected=%q got=%q", expected, function.String())
 	}
 }
