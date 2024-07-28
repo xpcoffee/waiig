@@ -4,6 +4,7 @@ import (
 	"monkey/lexer"
 	"monkey/object"
 	"monkey/parser"
+	"strings"
 	"testing"
 )
 
@@ -317,28 +318,56 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len("")`, 0},
 		{`len("barr")`, 4},
 		{`len("hello world")`, 11},
-		{`len(1)`, "argument to `len` not supported, got INTEGER"},
-		{`len("one", "two")`, "wrong number of arguments. expected=1 got=2"},
+		{`len(1)`, "Err: argument to `len` not supported, got INTEGER"},
+		{`len("one", "two")`, "Err: wrong number of arguments. expected=1 got=2"},
 		{`len(["one", "two"])`, 2},
 		{`len([1, "two", fn(){ 2 }])`, 3},
 		{`first([1, "two"])`, 1},
 		{`first([fn(){ 8 }])()`, 8},
+		{`rest([4, 5, 6, 7])`, []interface{}{5, 6, 7}},
+		{`rest([1, "two", 3, fn(){return 4}()])`, []interface{}{"two", 3, 4}},
 	}
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
+		testObject(t, evaluated, tt.expected)
+	}
+}
 
-		switch expected := tt.expected.(type) {
-		case int:
-			testIntegerObject(t, evaluated, int64(expected))
-		case string:
+func testObject(t *testing.T, evaluated object.Object, expected interface{}) {
+	switch expected := expected.(type) {
+	case int:
+		testIntegerObject(t, evaluated, int64(expected))
+	case string:
+		if strings.Contains(expected, "Err:") {
 			err, ok := evaluated.(*object.Error)
 			if !ok {
 				t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
 			}
-			if err.Message != expected {
+			if "Err: "+err.Message != expected {
 				t.Errorf("wrong error message. expected=%s, got=%s", expected, err.Message)
 			}
+			return
+		}
+
+		err, ok := evaluated.(*object.String)
+		if !ok {
+			t.Errorf("object is not String. got=%T (%+v)", evaluated, evaluated)
+		}
+		if err.Value != expected {
+			t.Errorf("wrong string value. expected=%q, got=%q", expected, err.Value)
+		}
+	case []interface{}:
+		ar, ok := evaluated.(*object.Array)
+		if !ok {
+			t.Errorf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+		}
+		if len(expected) != len(ar.Elements) {
+			t.Errorf("wrong number of elements. expected=%d got=%d", len(expected), len(ar.Elements))
+		}
+
+		for i, el := range ar.Elements {
+			testObject(t, el, expected[i])
 		}
 	}
 }
