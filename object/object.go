@@ -18,6 +18,7 @@ const (
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
+	ARRAY_OBJ        = "ARRAY"
 )
 
 type Object interface {
@@ -112,7 +113,7 @@ type Array struct {
 	Elements []Object
 }
 
-func (ar *Array) Type() ObjectType { return FUNCTION_OBJ }
+func (ar *Array) Type() ObjectType { return ARRAY_OBJ }
 func (ar *Array) Inspect() string {
 	var out bytes.Buffer
 
