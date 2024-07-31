@@ -327,9 +327,15 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len(["one", "two"])`, 2},
 		{`len([1, "two", fn(){ 2 }])`, 3},
 		{`first([1, "two"])`, 1},
+		{`first([3])`, 3},
+		{`first([])`, nil},
 		{`first([fn(){ 8 }])()`, 8},
 		{`rest([4, 5, 6, 7])`, []interface{}{5, 6, 7}},
 		{`rest([1, "two", 3, fn(){return 4}()])`, []interface{}{"two", 3, 4}},
+		{`rest([1])`, nil},
+		{`rest([])`, nil},
+		{`push([1, 2], 3)`, []interface{}{1, 2, 3}},
+		{`push([4], fn(){5}())`, []interface{}{4, 5}},
 	}
 
 	for _, tt := range tests {
