@@ -808,3 +808,68 @@ func TestArrayIndexingExpression(t *testing.T) {
 		t.Fatalf("incorrect array indexing string representation. expected=%q got=%q", expected, exp.String())
 	}
 }
+
+func TestHashLiterals(t *testing.T) {
+	input := `{"foo": "bar", 1: 3 > 5, true: fn(){3}()}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	exp, ok := stmt.Expression.(*ast.HashLiteral)
+	if !ok {
+		t.Fatalf("expression is not an HashLiteral. got=%T (%+v)", stmt.Expression, stmt.Expression)
+	}
+
+	for k, v := range exp.Pairs {
+		switch k := k.(type) {
+		case *ast.BooleanExpression:
+			if k.Value != true {
+				t.Fatalf("incorrect key. expected=%t got=%t", true, k.Value)
+			}
+			if _, ok := v.(*ast.FunctionCallExpression); !ok {
+				t.Fatalf("value is not a function call. key=%s got=%T (%+v)", k.String(), v, v)
+			}
+		case *ast.StringLiteral:
+			if k.Value != "foo" {
+				t.Fatalf("incorrect key. expected=%q got=%q", "foo", k.Value)
+			}
+			if v, ok := v.(*ast.StringLiteral); !ok {
+				t.Fatalf("value is not a string. key=%s got=%T (%+v)", k.String(), v, v)
+			} else if v.Value != "bar" {
+				t.Fatalf("value key. expected=%q got=%q", "bar", k.Value)
+			}
+		case *ast.IntegerLiteral:
+			if k.Value != 1 {
+				t.Fatalf("incorrect key. expected=%d got=%d", 1, k.Value)
+			}
+			if _, ok := v.(*ast.InfixExpression); !ok {
+				t.Fatalf("value is not an infix. key=%s got=%T (%+v)", k.String(), v, v)
+			}
+
+		default:
+			t.Fatalf("Unrecognized key. got=%T (%+v)", k, k)
+		}
+	}
+}
+
+func TestEmptyHashLiterals(t *testing.T) {
+	input := `{}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	exp, ok := stmt.Expression.(*ast.HashLiteral)
+	if !ok {
+		t.Fatalf("expression is not an HashLiteral. got=%T (%+v)", stmt.Expression, stmt.Expression)
+	}
+
+	if len(exp.Pairs) != 0 {
+		t.Fatalf("Expected an empty hash length got=%d", len(exp.Pairs))
+	}
+}

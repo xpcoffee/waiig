@@ -316,8 +316,31 @@ type IndexingExpression struct {
 	Target Expression
 }
 
-func (al *IndexingExpression) expressionNode()      {}
+func (ie *IndexingExpression) expressionNode()      {}
 func (ie *IndexingExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IndexingExpression) String() string {
 	return fmt.Sprintf("%s[%s]", ie.Target.String(), ie.Index.String())
+}
+
+// Hash
+type HashLiteral struct {
+	Token token.Token
+	Pairs map[Expression]Expression
+}
+
+func (hl *HashLiteral) expressionNode()      {}
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+	for k, v := range hl.Pairs {
+		pairs = append(pairs, fmt.Sprintf(`%s: %s`, k.String(), v.String()))
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ","))
+	out.WriteString("}")
+
+	return out.String()
 }
