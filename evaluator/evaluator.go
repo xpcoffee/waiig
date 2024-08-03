@@ -87,6 +87,15 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return &object.Array{Elements: elements}
 
+	case *ast.HashLiteral:
+		pairs := make(map[object.Object]object.Object)
+		for k, v := range node.Pairs {
+			key := Eval(k, env)
+			value := Eval(v, env)
+			pairs[key] = value
+		}
+		return &object.Hash{Pairs: pairs}
+
 	case *ast.IndexingExpression:
 		evaluatedIndex := Eval(node.Index, env)
 		if evaluatedIndex.Type() != object.INTEGER_OBJ {

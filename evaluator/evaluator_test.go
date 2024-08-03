@@ -420,6 +420,42 @@ func TestArray(t *testing.T) {
 	}
 }
 
+func TestHashes(t *testing.T) {
+	input := `{1:"string", "foo": true, fn(){"bar"}(): fn(){ "hello, world!"}}`
+	evaluated := testEval(input)
+
+	hash, ok := evaluated.(*object.Hash)
+	if !ok {
+		t.Fatalf("object is not hash. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	for k, v := range hash.Pairs {
+		switch v := v.(type) {
+		case *object.Function:
+			if v.Body.String() != "hello, world!" {
+				t.Errorf("wrong function body. expected=%s, got=%s", "hello, world!", v.Body.String())
+			}
+			if k.Type() != object.STRING_OBJ {
+				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", k.Type())
+			}
+		case *object.String:
+			if v.Value != "string" {
+				t.Errorf("wrong string value. expected=%s, got=%s", "string", v.Value)
+			}
+			if k.Type() != object.INTEGER_OBJ {
+				t.Errorf("wrong key type. expected=INTEGER_OBJ, got=%s", k.Type())
+			}
+		case *object.Boolean:
+			if v.Value != true {
+				t.Errorf("wrong string value. expected=%t, got=%t", true, v.Value)
+			}
+			if k.Type() != object.STRING_OBJ {
+				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", k.Type())
+			}
+		}
+	}
+}
+
 func TestIndexing(t *testing.T) {
 	tests := []struct {
 		input    string
