@@ -855,6 +855,29 @@ func TestHashLiterals(t *testing.T) {
 	}
 }
 
+func TestHashIndexing(t *testing.T) {
+	input := `{2: true, "false": fn(){3}, false: "hello"}["false"]`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	idx, ok := stmt.Expression.(*ast.IndexingExpression)
+	if !ok {
+		t.Fatalf("expression is not an IndexExpression. got=%T (%+v)", stmt.Expression, stmt.Expression)
+	}
+
+	if _, ok := idx.Target.(*ast.HashLiteral); !ok {
+		t.Fatalf("target is not an HashLiteral. got=%T (%+v)", idx.Target, idx.Target)
+	}
+
+	if _, ok := idx.Index.(*ast.StringLiteral); !ok {
+		t.Fatalf("index is not a StringLiteral. got=%T (%+v)", idx.Index, idx.Index)
+	}
+}
+
 func TestEmptyHashLiterals(t *testing.T) {
 	input := `{}`
 
