@@ -429,31 +429,34 @@ func TestHashes(t *testing.T) {
 		t.Fatalf("object is not hash. got=%T (%+v)", evaluated, evaluated)
 	}
 
-	for k, v := range hash.Pairs {
-		switch v := v.(type) {
+	for _, pair := range hash.Pairs {
+		switch v := pair.Value.(type) {
 		case *object.Function:
 			if v.Body.String() != "hello, world!" {
 				t.Errorf("wrong function body. expected=%s, got=%s", "hello, world!", v.Body.String())
 			}
-			if k.Type() != object.STRING_OBJ {
-				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", k.Type())
+			if pair.Key.Type() != object.STRING_OBJ {
+				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", pair.Key.Type())
 			}
 		case *object.String:
 			if v.Value != "string" {
 				t.Errorf("wrong string value. expected=%s, got=%s", "string", v.Value)
 			}
-			if k.Type() != object.INTEGER_OBJ {
-				t.Errorf("wrong key type. expected=INTEGER_OBJ, got=%s", k.Type())
+			if pair.Key.Type() != object.INTEGER_OBJ {
+				t.Errorf("wrong key type. expected=INTEGER_OBJ, got=%s", pair.Key.Type())
 			}
 		case *object.Boolean:
 			if v.Value != true {
 				t.Errorf("wrong string value. expected=%t, got=%t", true, v.Value)
 			}
-			if k.Type() != object.STRING_OBJ {
-				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", k.Type())
+			if pair.Key.Type() != object.STRING_OBJ {
+				t.Errorf("wrong key type. expected=STRING_OBJ, got=%s", pair.Key.Type())
 			}
 		}
 	}
+
+	testError(t, testEval(`{{false:true}:true}`), "Cannot use as key HASH")
+	testError(t, testEval(`{fn(){"hello"}:true}`), "Cannot use as key FUNCTION")
 }
 
 func TestIndexing(t *testing.T) {
@@ -464,6 +467,9 @@ func TestIndexing(t *testing.T) {
 		{`[1,2,3][1]`, 2},
 		{`fn(){ [4,5,6]}()[0]`, 4},
 		{`fn(){[4,5,6]}() [ fn(){2}() ]`, 6},
+		{`{2: true, "false": fn(){3}, false: "hello"}[2]`, true},
+		{`{2: true, "false": fn(){3}, false: "hello"}["false"]()`, 3},
+		{`{2: true, "false": fn(){3}, false: "hello"}[false]`, "hello"},
 	}
 
 	for _, tt := range tests {
@@ -475,4 +481,6 @@ func TestIndexing(t *testing.T) {
 	testError(t, testEval(`[3, 4]["hiya"]`), "Cannot use as index STRING")
 	testError(t, testEval(`[3, 4][3]`), "Index is larger than the max. index=3, max=1")
 	testError(t, testEval(`[3, 4][-1]`), "Cannot index with a negative number -1")
+	testError(t, testEval(`{1:true}[fn(){"hello"}]`), "Cannot use as index FUNCTION")
+	testError(t, testEval(`{1:true}[[1]]`), "Cannot use as index ARRAY")
 }

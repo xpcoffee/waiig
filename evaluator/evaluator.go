@@ -88,24 +88,28 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Array{Elements: elements}
 
 	case *ast.HashLiteral:
-		pairs := make(map[object.Object]object.Object)
+		pairs := make(map[object.HashKey]object.HashPair)
 		for k, v := range node.Pairs {
-			key := Eval(k, env)
 			value := Eval(v, env)
-			pairs[key] = value
+			keyObj := Eval(k, env)
+			if hashableObj, ok := keyObj.(object.Hashable); !ok {
+				return newError("Cannot use as key %s", keyObj.Type())
+			} else {
+				pairs[hashableObj.HashKey()] = object.HashPair{Key: keyObj, Value: value}
+			}
 		}
 		return &object.Hash{Pairs: pairs}
 
 	case *ast.IndexingExpression:
-		evaluatedIndex := Eval(node.Index, env)
-		if evaluatedIndex.Type() != object.INTEGER_OBJ {
-			return newError("Cannot use as index %s", evaluatedIndex.Type())
-		}
-		index := evaluatedIndex.(*object.Integer)
-
 		target := Eval(node.Target, env)
 		switch target := target.(type) {
 		case *object.Array:
+			evaluatedIndex := Eval(node.Index, env)
+			if evaluatedIndex.Type() != object.INTEGER_OBJ {
+				return newError("Cannot use as index %s", evaluatedIndex.Type())
+			}
+			index := evaluatedIndex.(*object.Integer)
+
 			if index.Value < 0 {
 				return newError("Cannot index with a negative number %d", index.Value)
 			}
@@ -115,12 +119,33 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			}
 
 			return target.Elements[index.Value]
+		case *object.Hash:
+			evaluatedIndex := Eval(node.Index, env)
+
+			if hashableObj, ok := evaluatedIndex.(object.Hashable); !ok {
+				return newError("Cannot use as index %s", evaluatedIndex.Type())
+			} else {
+				return target.Pairs[hashableObj.HashKey()].Value
+			}
 		default:
 			return newError("Cannot index type %s", target.Type())
 		}
 	}
 
 	return nil
+}
+
+func isHashIndexType(obj object.Object) bool {
+	switch obj.Type() {
+	case object.INTEGER_OBJ:
+		return true
+	case object.STRING_OBJ:
+		return true
+	case object.BOOLEAN_OBJ:
+		return true
+	default:
+		return false
+	}
 }
 
 // returns the evalutation of the LAST statement
