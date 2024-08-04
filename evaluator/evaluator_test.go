@@ -467,9 +467,11 @@ func TestIndexing(t *testing.T) {
 		{`[1,2,3][1]`, 2},
 		{`fn(){ [4,5,6]}()[0]`, 4},
 		{`fn(){[4,5,6]}() [ fn(){2}() ]`, 6},
+		{`let var = 2; [1,2,3][var]`, 3},
 		{`{2: true, "false": fn(){3}, false: "hello"}[2]`, true},
 		{`{2: true, "false": fn(){3}, false: "hello"}["false"]()`, 3},
 		{`{2: true, "false": fn(){3}, false: "hello"}[false]`, "hello"},
+		{`let var = 1; {2: true, "false": fn(){3}, false: "hello"}[var]`, true},
 	}
 
 	for _, tt := range tests {
